@@ -3,8 +3,6 @@ torch
 diffusers
 transformers
 accelerate
-scipy
 safetensors
 Pillow
-matplotlib
-huggingface_hub
+scipy
