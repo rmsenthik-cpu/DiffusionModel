@@ -3,79 +3,102 @@ import requests
 from PIL import Image
 from io import BytesIO
 
-# ---------------------------------------
+# ---------------------------------------------------
 # PAGE CONFIG
-# ---------------------------------------
+# ---------------------------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
-    page_icon="🎨",
-    layout="centered"
+    page_icon="🎨"
 )
 
 st.title("🎨 AI Image Generator")
 
-# ---------------------------------------
-# LOAD SECRET API KEY
-# ---------------------------------------
+# ---------------------------------------------------
+# LOAD SECRET TOKEN
+# ---------------------------------------------------
 HF_TOKEN = st.secrets["HF_TOKEN"]
 
-# ---------------------------------------
-# HUGGING FACE MODEL API
-# ---------------------------------------
-API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
+# ---------------------------------------------------
+# MODEL API
+# ---------------------------------------------------
+API_URL = (
+    "https://api-inference.huggingface.co/models/"
+    "runwayml/stable-diffusion-v1-5"
+)
 
 headers = {
     "Authorization": f"Bearer {HF_TOKEN}"
 }
 
-# ---------------------------------------
+# ---------------------------------------------------
 # USER INPUT
-# ---------------------------------------
+# ---------------------------------------------------
 prompt = st.text_input(
     "Enter your prompt",
-    "AI loves nature"
+    "A futuristic city at sunset"
 )
 
-generate = st.button("Generate Image")
-
-# ---------------------------------------
-# GENERATE IMAGE
-# ---------------------------------------
-if generate:
+# ---------------------------------------------------
+# GENERATE BUTTON
+# ---------------------------------------------------
+if st.button("Generate Image"):
 
     with st.spinner("Generating image..."):
 
-        payload = {
-            "inputs": prompt
-        }
+        try:
 
-        response = requests.post(
-            API_URL,
-            headers=headers,
-            json=payload
-        )
+            payload = {
+                "inputs": prompt
+            }
 
-        if response.status_code == 200:
-
-            image = Image.open(BytesIO(response.content))
-
-            st.image(
-                image,
-                caption=prompt,
-                use_container_width=True
+            response = requests.post(
+                API_URL,
+                headers=headers,
+                json=payload,
+                timeout=180
             )
 
-            image.save("generated_image.png")
+            # SUCCESS
+            if response.status_code == 200:
 
-            with open("generated_image.png", "rb") as file:
-
-                st.download_button(
-                    label="Download Image",
-                    data=file,
-                    file_name="generated_image.png",
-                    mime="image/png"
+                image = Image.open(
+                    BytesIO(response.content)
                 )
 
-        else:
-            st.error(f"Error: {response.status_code}")
-            st.write(response.text)
+                st.image(
+                    image,
+                    caption=prompt,
+                    use_container_width=True
+                )
+
+            # MODEL LOADING
+            elif response.status_code == 503:
+
+                st.warning(
+                    "Model is loading. "
+                    "Wait 30 seconds and try again."
+                )
+
+            else:
+
+                st.error(
+                    f"Error {response.status_code}"
+                )
+
+                st.write(response.text)
+
+        except requests.exceptions.ConnectionError:
+
+            st.error(
+                "Connection failed."
+            )
+
+        except requests.exceptions.Timeout:
+
+            st.error(
+                "Request timed out."
+            )
+
+        except Exception as e:
+
+            st.error(str(e))
