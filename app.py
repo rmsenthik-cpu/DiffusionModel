@@ -22,7 +22,7 @@ HF_TOKEN = st.secrets["HF_TOKEN"]
 # ---------------------------------------
 # HUGGING FACE MODEL API
 # ---------------------------------------
-API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
+API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
 
 headers = {
     "Authorization": f"Bearer {HF_TOKEN}"
