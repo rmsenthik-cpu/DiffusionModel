@@ -1,3 +1,10 @@
 streamlit
-requests
+torch
+torchvision
+diffusers
+transformers
+accelerate
+safetensors
 Pillow
+requests
+scipy
