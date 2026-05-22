@@ -1,96 +1,113 @@
 import streamlit as st
-from transformers import pipeline
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+import random
 import io
 
 # ---------------------------------------------------
 # PAGE CONFIG
 # ---------------------------------------------------
 st.set_page_config(
-    page_title="Lightweight AI Image Generator",
+    page_title="Lightweight AI Art Generator",
     page_icon="🎨",
     layout="centered"
 )
 
-st.title("🎨 Lightweight AI Image Generator")
+st.title("🎨 Lightweight AI Art Generator")
 
 st.write(
-    "Generate images using a lightweight CPU-friendly model."
+    "Generate artistic AI-style images without GPU or heavy models."
 )
-
-# ---------------------------------------------------
-# LOAD MODEL
-# ---------------------------------------------------
-@st.cache_resource
-def load_model():
-
-    generator = pipeline(
-        "text-to-image",
-        model="hf-internal-testing/tiny-stable-diffusion-pipe"
-    )
-
-    return generator
-
-# ---------------------------------------------------
-# MODEL LOADING
-# ---------------------------------------------------
-with st.spinner("Loading lightweight model..."):
-
-    pipe = load_model()
-
-st.success("Model Loaded Successfully!")
 
 # ---------------------------------------------------
 # USER INPUT
 # ---------------------------------------------------
 prompt = st.text_input(
     "Enter your prompt",
-    "A beautiful mountain landscape"
+    "Nature"
 )
+
+# ---------------------------------------------------
+# GENERATE FUNCTION
+# ---------------------------------------------------
+def generate_art(prompt):
+
+    width = 512
+    height = 512
+
+    image = Image.new(
+        "RGB",
+        (width, height),
+        (
+            random.randint(0, 255),
+            random.randint(0, 255),
+            random.randint(0, 255)
+        )
+    )
+
+    draw = ImageDraw.Draw(image)
+
+    # Draw random circles
+    for _ in range(100):
+
+        x1 = random.randint(0, width)
+        y1 = random.randint(0, height)
+
+        x2 = x1 + random.randint(10, 100)
+        y2 = y1 + random.randint(10, 100)
+
+        color = (
+            random.randint(0, 255),
+            random.randint(0, 255),
+            random.randint(0, 255)
+        )
+
+        draw.ellipse(
+            [x1, y1, x2, y2],
+            fill=color
+        )
+
+    # Add prompt text
+    try:
+        font = ImageFont.load_default()
+
+        draw.text(
+            (20, 20),
+            f"Prompt: {prompt}",
+            fill="white",
+            font=font
+        )
+
+    except:
+        pass
+
+    return image
 
 # ---------------------------------------------------
 # GENERATE BUTTON
 # ---------------------------------------------------
-if st.button("Generate Image"):
+if st.button("Generate Art"):
 
-    if prompt.strip() == "":
-        st.warning("Please enter a prompt.")
-        st.stop()
+    with st.spinner("Generating artwork..."):
 
-    with st.spinner("Generating image..."):
+        image = generate_art(prompt)
 
-        try:
+        st.image(
+            image,
+            caption=prompt,
+            use_container_width=True
+        )
 
-            result = pipe(prompt)
+        # Download option
+        buffer = io.BytesIO()
 
-            image = result["images"][0]
+        image.save(buffer, format="PNG")
 
-            # ---------------------------------------------------
-            # DISPLAY IMAGE
-            # ---------------------------------------------------
-            st.image(
-                image,
-                caption=prompt,
-                use_container_width=True
-            )
-
-            # ---------------------------------------------------
-            # SAVE IMAGE
-            # ---------------------------------------------------
-            buffer = io.BytesIO()
-
-            image.save(buffer, format="PNG")
-
-            st.download_button(
-                label="⬇ Download Image",
-                data=buffer.getvalue(),
-                file_name="generated_image.png",
-                mime="image/png"
-            )
-
-        except Exception as e:
-
-            st.error(f"Error: {str(e)}")
+        st.download_button(
+            label="⬇ Download Image",
+            data=buffer.getvalue(),
+            file_name="generated_art.png",
+            mime="image/png"
+        )
 
 # ---------------------------------------------------
 # SIDEBAR
@@ -99,12 +116,11 @@ st.sidebar.title("ℹ About")
 
 st.sidebar.info(
     """
-    Lightweight AI Image Generator
-
     Features:
-    - No GPU required
-    - CPU friendly
-    - Lightweight model
-    - Streamlit compatible
+    - No GPU
+    - No torch
+    - No diffusion
+    - Lightweight
+    - Streamlit Cloud compatible
     """
 )
