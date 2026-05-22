@@ -8,30 +8,27 @@ from io import BytesIO
 # ---------------------------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
-    page_icon="🎨",
-    layout="centered"
+    page_icon="🎨"
 )
 
-# ---------------------------------------------------
-# TITLE
-# ---------------------------------------------------
 st.title("🎨 AI Image Generator")
 
-st.write(
-    "Generate AI images using Hugging Face Inference API"
-)
+# ---------------------------------------------------
+# LOAD HF TOKEN
+# ---------------------------------------------------
+try:
+    HF_TOKEN = st.secrets["HF_TOKEN"]
+
+except Exception as e:
+    st.error("HF_TOKEN missing in Streamlit Secrets")
+    st.stop()
 
 # ---------------------------------------------------
-# LOAD SECRET TOKEN
-# ---------------------------------------------------
-HF_TOKEN = st.secrets["HF_TOKEN"]
-
-# ---------------------------------------------------
-# API URL
+# WORKING MODEL API
 # ---------------------------------------------------
 API_URL = (
     "https://api-inference.huggingface.co/models/"
-    "runwayml/stable-diffusion-v1-5"
+    "stabilityai/stable-diffusion-2"
 )
 
 headers = {
@@ -39,10 +36,10 @@ headers = {
 }
 
 # ---------------------------------------------------
-# USER INPUT
+# PROMPT INPUT
 # ---------------------------------------------------
 prompt = st.text_input(
-    "Enter your prompt",
+    "Enter Prompt",
     "A futuristic city at sunset"
 )
 
@@ -53,19 +50,20 @@ if st.button("Generate Image"):
 
     with st.spinner("Generating image..."):
 
-        payload = {
-            "inputs": prompt
-        }
-
         try:
+
+            payload = {
+                "inputs": prompt
+            }
 
             response = requests.post(
                 API_URL,
                 headers=headers,
                 json=payload,
-                timeout=180
+                timeout=300
             )
 
+            # SUCCESS
             if response.status_code == 200:
 
                 image = Image.open(
@@ -78,13 +76,22 @@ if st.button("Generate Image"):
                     use_container_width=True
                 )
 
+            # MODEL LOADING
             elif response.status_code == 503:
 
                 st.warning(
-                    "Model is loading.\n"
-                    "Wait 30 seconds and try again."
+                    "Model is loading on Hugging Face.\n"
+                    "Wait 30-60 seconds and try again."
                 )
 
+            # UNAUTHORIZED
+            elif response.status_code == 401:
+
+                st.error(
+                    "Invalid Hugging Face Token."
+                )
+
+            # OTHER API ERRORS
             else:
 
                 st.error(
@@ -93,16 +100,17 @@ if st.button("Generate Image"):
 
                 st.write(response.text)
 
-        except requests.exceptions.ConnectionError:
-
-            st.error(
-                "Connection failed."
-            )
-
         except requests.exceptions.Timeout:
 
             st.error(
-                "Request timeout."
+                "Request timed out."
+            )
+
+        except requests.exceptions.ConnectionError:
+
+            st.error(
+                "Connection failed.\n"
+                "Cannot reach Hugging Face API."
             )
 
         except Exception as e:
