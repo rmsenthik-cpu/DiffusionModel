@@ -8,10 +8,18 @@ from io import BytesIO
 # ---------------------------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
-    page_icon="🎨"
+    page_icon="🎨",
+    layout="centered"
 )
 
+# ---------------------------------------------------
+# TITLE
+# ---------------------------------------------------
 st.title("🎨 AI Image Generator")
+
+st.write(
+    "Generate AI images using Hugging Face Inference API"
+)
 
 # ---------------------------------------------------
 # LOAD SECRET TOKEN
@@ -19,7 +27,7 @@ st.title("🎨 AI Image Generator")
 HF_TOKEN = st.secrets["HF_TOKEN"]
 
 # ---------------------------------------------------
-# MODEL API
+# API URL
 # ---------------------------------------------------
 API_URL = (
     "https://api-inference.huggingface.co/models/"
@@ -45,11 +53,11 @@ if st.button("Generate Image"):
 
     with st.spinner("Generating image..."):
 
-        try:
+        payload = {
+            "inputs": prompt
+        }
 
-            payload = {
-                "inputs": prompt
-            }
+        try:
 
             response = requests.post(
                 API_URL,
@@ -58,7 +66,6 @@ if st.button("Generate Image"):
                 timeout=180
             )
 
-            # SUCCESS
             if response.status_code == 200:
 
                 image = Image.open(
@@ -71,18 +78,17 @@ if st.button("Generate Image"):
                     use_container_width=True
                 )
 
-            # MODEL LOADING
             elif response.status_code == 503:
 
                 st.warning(
-                    "Model is loading. "
+                    "Model is loading.\n"
                     "Wait 30 seconds and try again."
                 )
 
             else:
 
                 st.error(
-                    f"Error {response.status_code}"
+                    f"API Error: {response.status_code}"
                 )
 
                 st.write(response.text)
@@ -96,7 +102,7 @@ if st.button("Generate Image"):
         except requests.exceptions.Timeout:
 
             st.error(
-                "Request timed out."
+                "Request timeout."
             )
 
         except Exception as e:
