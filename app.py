@@ -1,43 +1,40 @@
 import streamlit as st
-import torch
-from diffusers import StableDiffusionPipeline
+from transformers import pipeline
 from PIL import Image
-import os
+import io
 
 # ---------------------------------------------------
 # PAGE CONFIG
 # ---------------------------------------------------
 st.set_page_config(
-    page_title="Local AI Image Generator",
+    page_title="Lightweight AI Image Generator",
     page_icon="🎨",
     layout="centered"
 )
 
-st.title("🎨 Local AI Image Generator")
+st.title("🎨 Lightweight AI Image Generator")
 
-st.write("Generate AI images locally using Stable Diffusion")
-
-# ---------------------------------------------------
-# MODEL CACHE
-# ---------------------------------------------------
-@st.cache_resource
-def load_model():
-
-    model_id = "runwayml/stable-diffusion-v1-5"
-
-    pipe = StableDiffusionPipeline.from_pretrained(
-        model_id,
-        torch_dtype=torch.float32
-    )
-
-    pipe = pipe.to("cpu")
-
-    return pipe
+st.write(
+    "Generate images using a lightweight CPU-friendly model."
+)
 
 # ---------------------------------------------------
 # LOAD MODEL
 # ---------------------------------------------------
-with st.spinner("Loading Stable Diffusion model..."):
+@st.cache_resource
+def load_model():
+
+    generator = pipeline(
+        "text-to-image",
+        model="hf-internal-testing/tiny-stable-diffusion-pipe"
+    )
+
+    return generator
+
+# ---------------------------------------------------
+# MODEL LOADING
+# ---------------------------------------------------
+with st.spinner("Loading lightweight model..."):
 
     pipe = load_model()
 
@@ -46,39 +43,9 @@ st.success("Model Loaded Successfully!")
 # ---------------------------------------------------
 # USER INPUT
 # ---------------------------------------------------
-prompt = st.text_area(
-    "Enter your image prompt",
-    value="A futuristic city with flying cars at sunset",
-    height=120
-)
-
-# ---------------------------------------------------
-# IMAGE SIZE
-# ---------------------------------------------------
-width = st.slider(
-    "Image Width",
-    min_value=256,
-    max_value=768,
-    value=512,
-    step=64
-)
-
-height = st.slider(
-    "Image Height",
-    min_value=256,
-    max_value=768,
-    value=512,
-    step=64
-)
-
-# ---------------------------------------------------
-# INFERENCE STEPS
-# ---------------------------------------------------
-steps = st.slider(
-    "Inference Steps",
-    min_value=10,
-    max_value=50,
-    value=20
+prompt = st.text_input(
+    "Enter your prompt",
+    "A beautiful mountain landscape"
 )
 
 # ---------------------------------------------------
@@ -90,17 +57,17 @@ if st.button("Generate Image"):
         st.warning("Please enter a prompt.")
         st.stop()
 
-    with st.spinner("Generating image... Please wait..."):
+    with st.spinner("Generating image..."):
 
         try:
 
-            image = pipe(
-                prompt,
-                height=height,
-                width=width,
-                num_inference_steps=steps
-            ).images[0]
+            result = pipe(prompt)
 
+            image = result["images"][0]
+
+            # ---------------------------------------------------
+            # DISPLAY IMAGE
+            # ---------------------------------------------------
             st.image(
                 image,
                 caption=prompt,
@@ -110,21 +77,16 @@ if st.button("Generate Image"):
             # ---------------------------------------------------
             # SAVE IMAGE
             # ---------------------------------------------------
-            output_path = "generated_image.png"
+            buffer = io.BytesIO()
 
-            image.save(output_path)
+            image.save(buffer, format="PNG")
 
-            # ---------------------------------------------------
-            # DOWNLOAD BUTTON
-            # ---------------------------------------------------
-            with open(output_path, "rb") as file:
-
-                st.download_button(
-                    label="⬇ Download Image",
-                    data=file,
-                    file_name="generated_image.png",
-                    mime="image/png"
-                )
+            st.download_button(
+                label="⬇ Download Image",
+                data=buffer.getvalue(),
+                file_name="generated_image.png",
+                mime="image/png"
+            )
 
         except Exception as e:
 
@@ -137,25 +99,12 @@ st.sidebar.title("ℹ About")
 
 st.sidebar.info(
     """
-    This app uses:
+    Lightweight AI Image Generator
 
-    - Streamlit
-    - Diffusers
-    - Stable Diffusion v1.5
-    - Local CPU inference
-
-    No external API used.
-    """
-)
-
-st.sidebar.warning(
-    """
-    ⚠ Streamlit Community Cloud may crash
-    due to RAM limitations.
-
-    Recommended:
-    - Google Colab
-    - RunPod
-    - Local GPU machine
+    Features:
+    - No GPU required
+    - CPU friendly
+    - Lightweight model
+    - Streamlit compatible
     """
 )
